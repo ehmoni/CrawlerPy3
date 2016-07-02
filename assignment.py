@@ -12,6 +12,7 @@ import requests
 
 global items 
 urls = []
+titles = []
 
 #------------------------------------------------------------------------------
 def crawler(startpage, maxpages=100, maxitems=30, singledomain=True):
@@ -28,6 +29,7 @@ def crawler(startpage, maxpages=100, maxitems=30, singledomain=True):
     domain = urlparse(startpage).netloc if singledomain else None
 
     pages = 0 # number of pages succesfully crawled so far
+    global items
     items = 0 # number of items found    
     failed = 0 # number of links that couldn't be crawled
 
@@ -100,7 +102,8 @@ def pagehandler(pageurl, pageresponse):
     if (soup.title.string.find("Trump") > 0 or soup.title.string.find("Clinton") > 0):
         global items
         items = items + 1
-        urls.append(pageurl)        
+        urls.append(pageurl)
+        titles.append(str(soup.title.string))        
         print(soup.title.string)
    
     return True
@@ -109,6 +112,19 @@ def pagehandler(pageurl, pageresponse):
 # if running standalone, crawl some CNN Politics pages as a test
 if __name__ == "__main__":
     START = default_timer()
-    crawler('http://edition.cnn.com/politics', maxpages=100, maxitems=25, singledomain=True)
+    crawler('http://edition.cnn.com/politics', maxpages=500, maxitems=25, singledomain=True)
+    
+    body = ""
+    start = "<!DOCTYPE html><html><body>"
+    for u,t in zip(urls,titles):
+        body += '<h3><a href="' + u + '">' + t + '</a></h3>'
+    end = "</body></html>"
+
+    html = start + body + end  
+    
+    output = open("CNN.html","w")
+    output.write(html)
+    output.close()
+    
     END = default_timer()
     print('Elapsed time (seconds) = ' + str(END-START))
