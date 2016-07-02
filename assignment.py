@@ -9,11 +9,16 @@ from urllib.parse import urldefrag, urljoin, urlparse
 import bs4
 import requests
 
+
+global items 
+urls = []
+
 #------------------------------------------------------------------------------
-def crawler(startpage, maxpages=100, singledomain=True):
+def crawler(startpage, maxpages=100, maxitems=30, singledomain=True):
     """Crawl the web starting from specified page.
     1st parameter = URL of starting page
     maxpages = maximum number of pages to crawl
+    maxitems = searching for items that has to be added in handler
     singledomain = whether to only crawl links within startpage's domain
     """
 
@@ -23,10 +28,11 @@ def crawler(startpage, maxpages=100, singledomain=True):
     domain = urlparse(startpage).netloc if singledomain else None
 
     pages = 0 # number of pages succesfully crawled so far
+    items = 0 # number of items found    
     failed = 0 # number of links that couldn't be crawled
 
     sess = requests.session() # initialize the session
-    while pages < maxpages and pagequeue:
+    while pages < maxpages and items < maxitems and pagequeue:
         url = pagequeue.popleft() # get next page to crawl (FIFO queue)
 
         # read the page
@@ -87,13 +93,22 @@ def pagehandler(pageurl, pageresponse):
     pageresponse = page content; response object from requests module
     Return value = whether or not this page's links should be crawled.
     """
-    print('Crawling:' + pageurl + ' ({0} bytes)'.format(len(pageresponse.text)))
+    soup = bs4.BeautifulSoup(pageresponse.text, "html.parser")
+    
+    #print('Crawling:' + pageurl + ' ({0} bytes)'.format(len(pageresponse.text)))
+
+    if (soup.title.string.find("Trump") > 0 or soup.title.string.find("Clinton") > 0):
+        global items
+        items = items + 1
+        urls.append(pageurl)        
+        print(soup.title.string)
+   
     return True
 
 #------------------------------------------------------------------------------
-# if running standalone, crawl some Microsoft pages as a test
+# if running standalone, crawl some CNN Politics pages as a test
 if __name__ == "__main__":
     START = default_timer()
-    crawler('http://www.microsoft.com', maxpages=10, singledomain=True)
+    crawler('http://edition.cnn.com/politics', maxpages=100, maxitems=25, singledomain=True)
     END = default_timer()
     print('Elapsed time (seconds) = ' + str(END-START))
